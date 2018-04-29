@@ -1,0 +1,6 @@
+[package]
+name = "rust-project-chooser"
+version = "0.1.0"
+authors = ["clotodex <clotodex@online.de>"]
+
+[dependencies]
