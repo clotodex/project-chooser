@@ -29,6 +29,6 @@
  * - max depth for descending
  */
 
-pub mod searcher;
+pub mod search;
 pub mod walker;
 pub mod cache;

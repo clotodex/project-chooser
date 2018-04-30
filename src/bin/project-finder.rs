@@ -1,24 +1,14 @@
 extern crate rust_project_chooser;
 
-use rust_project_chooser::walker;
-use std::fs::{DirEntry};
-use std::path::{Path, PathBuf};
+use rust_project_chooser::{
+    walker,
+    search::SearchKind
+};
+use std::{
+    fs::{DirEntry},
+    path::{Path, PathBuf}
+};
 
-enum SearchKind {
-    BASENAME,
-    FULL
-}
-
-//TODO implement for path or as iterator
-impl SearchKind {
-    //TODO use AsRef<Path>
-    fn search(&self, p: &PathBuf, query: &str) -> bool {
-        match *self {
-            SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().contains(&query),
-            SearchKind::FULL => p.to_string_lossy().contains(&query)
-        }
-    }    
-}
 
 fn main() {
 
