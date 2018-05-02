@@ -9,9 +9,11 @@ pub enum SearchKind {
 impl SearchKind {
     //TODO use AsRef<Path>
     pub fn search(&self, p: &PathBuf, query: &str) -> bool {
+        //TODO make lowercase search adjustable - maybe even support regex
+        let query = query.to_lowercase();
         match *self {
-            SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().contains(&query),
-            SearchKind::FULL => p.to_string_lossy().contains(&query)
+            SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().to_lowercase().contains(&query),
+            SearchKind::FULL => p.to_string_lossy().to_lowercase().contains(&query)
         }
-    }    
+    }
 }

@@ -4,9 +4,11 @@ use std::path::Path;
 
 // one possible implementation of walking a directory only visiting files
 pub fn visit_dirs<PMF, PIF, PICF>(dir: &Path, cb: &mut FnMut(&Path), pred_match: &PMF, pred_ignored: &PIF, pred_ignore_current: &PICF) -> io::Result<()> 
+
 where PMF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
       PIF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
       PICF: Fn(&DirEntry) -> bool + Send + Sync + 'static {
+    let dir: &Path = &dir.canonicalize()?;
     if dir.is_dir() {
         let mut to_check : Vec<DirEntry> = vec![];
         for entry in fs::read_dir(dir)? {
