@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub enum SearchKind {
     BASENAME,
     FULL

@@ -1,6 +1,10 @@
 [package]
+authors = ["clotodex <clotodex@online.de>"]
+license-file = "LICENSE"
 name = "rust-project-chooser"
 version = "0.1.0"
-authors = ["clotodex <clotodex@online.de>"]
 
 [dependencies]
+clap = "2.31.2"
+log = "0.4.1"
+stderrlog = "0.4.0"
