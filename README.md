@@ -22,18 +22,19 @@ Main usage:
 
 Options:
 
-    -b, --basename   Search in path basenames instead of the whole path
-    -c, --cache      Cache all project paths for future use
-    -h, --help       Prints help information
-    -p, --path       Set root path for locating projects (default: "/home/clotodex/projects")
-    -q, --quiet      Silence all output
-    -V, --version    Prints version information
-    -v               Increase message verbosity (-vvvv = Trace-level)
-    -j <jobs>        Amount of threads to use (default: None)
-    -m <mode>        How to handle multiple results (default: INTERACTIVE) [possible values: ALL, FIRST, INTERACTIVE]
+- ```-b, --basename   Search in path basenames instead of the whole path```
+- ```-c, --cache      Cache all project paths for future use```
+- ```-h, --help       Prints help information```
+- ```-p, --path       Set root path for locating projects (default: "~/projects")```
+- ```-q, --quiet      Silence all output```
+- ```-V, --version    Prints version information```
+- ```-v               Increase message verbosity (-vvvv = Trace-level)```
+- ```-j <jobs>        Amount of threads to use (default: None)```
+- ```-m <mode>        How to handle multiple results (default: INTERACTIVE) [possible values: ALL, FIRST, INTERACTIVE]```
 
 ARGS:
-    <query>
+
+- ```query```: A string to search for - if omitted dmenu will be opened where you can search in all your projects interactively 
 
 ## Future ideas and TODOs
 
