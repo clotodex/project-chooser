@@ -2,9 +2,8 @@ use std::io;
 use std::fs::{self, DirEntry};
 use std::path::Path;
 
-// one possible implementation of walking a directory only visiting files
-pub fn visit_dirs<PMF, PIF, PICF>(dir: &Path, cb: &mut FnMut(&Path), pred_match: &PMF, pred_ignored: &PIF, pred_ignore_current: &PICF) -> io::Result<()> 
-
+//TODO can be optimized to work on filename directly
+pub fn visit_dirs<PMF, PIF, PICF>(dir: &Path, cb: &mut FnMut(&Path), pred_match: &PMF, pred_ignored: &PIF, pred_ignore_current: &PICF) -> io::Result<()>
 where PMF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
       PIF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
       PICF: Fn(&DirEntry) -> bool + Send + Sync + 'static {
@@ -18,14 +17,14 @@ where PMF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
                 //TODO why does cb need to be &mut
                 cb(&dir);
             }
-            if pred_ignored(&entry) {
-                //do not visit dir
-                continue;
-            }
             if pred_ignore_current(&entry) {
                 //clear todo list and ignore
                 to_check.clear();
                 break;
+            }
+            if pred_ignored(&entry) {
+                //do not visit dir
+                continue;
             }
             to_check.push(entry);
         }

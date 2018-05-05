@@ -1,10 +1,12 @@
 #!/bin/bash
+echo "equality test!"
+echo "TODO"
 
 echo "cold cache test"
 
 su -c "echo 3 > /proc/sys/vm/drop_caches"
 echo "### find (raw)"
-time find ~/projects/ -not \( -path "*/src/*" -prune \) -not \( -path "*/.git/*" -prune \) -iname ".git" -or -iname ".project" > /dev/null
+time find ~/projects/ -not \( -path "*/src/*" -prune \) -not \( -path "*/.git/*" -prune \) -iname ".git" -or -iname ".project" -or -iname ".groupproject"> /dev/null
 
 su -c "echo 3 > /proc/sys/vm/drop_caches"
 echo "### find_arr:"
@@ -18,9 +20,9 @@ echo
 echo "warm cache test"
 
 su -c "echo 3 > /proc/sys/vm/drop_caches"
-find ~/projects/ -not \( -path "*/src/*" -prune \) -not \( -path "*/.git/*" -prune \) -iname ".git" -or -iname ".project" > /dev/null
+find ~/projects/ -not \( -path "*/src/*" -prune \) -not \( -path "*/.git/*" -prune \) -iname ".git" -or -iname ".project" -or -iname ".groupproject"> /dev/null
 echo "### find (raw)"
-time find ~/projects/ -not \( -path "*/src/*" -prune \) -not \( -path "*/.git/*" -prune \) -iname ".git" -or -iname ".project" > /dev/null
+time find ~/projects/ -not \( -path "*/src/*" -prune \) -not \( -path "*/.git/*" -prune \) -iname ".git" -or -iname ".project" -or -iname ".groupproject"> /dev/null
 
 su -c "echo 3 > /proc/sys/vm/drop_caches"
 ./find_test.sh > /dev/null

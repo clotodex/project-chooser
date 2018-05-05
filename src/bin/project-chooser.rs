@@ -106,20 +106,8 @@ fn rust_search(paths: Vec<PathBuf>, search_kind: SearchKind, query: &str) -> Vec
         .collect();
 }
 
-// read input arguments
-// - direct serach
-// - basename / nobasename
-// - outputall or choose best or interactive
-// - verbose mode for discovering what indexing is slow
-// - numthreads or seqential
-// - where to search
-fn main() {
-    //TODO make query pipeable in stdin => path collecting only once => search reuse
-    //TODO replace all expects and unwraps with error!
-    //TODO use builder macro from usage
-    //TODO use exit codes
+fn parse_commandline_args() -> ProgramOptions {
     let mut options = ProgramOptions::default();
-
     let m = app_from_crate!()
         .arg(
             Arg::with_name("verbosity")
@@ -209,13 +197,30 @@ fn main() {
     if options.use_cache {
         unimplemented!("cache is not available yet");
     }
+    return options;
+}
+
+// read input arguments
+// - direct serach
+// - basename / nobasename
+// - outputall or choose best or interactive
+// - verbose mode for discovering what indexing is slow
+// - numthreads or seqential
+// - where to search
+fn main() {
+    //TODO make query pipeable in stdin => path collecting only once => search reuse
+    //TODO replace all expects and unwraps with error!
+    //TODO use builder macro from usage
+    //TODO use exit codes
+
+    let options = parse_commandline_args();
 
     debug!("Arguments: {:?}", options);
 
     // retrieve project paths
-    let ok_path = vec![".git".to_string(), ".project".to_string()];
+    let ok_path = vec![".git".to_string(), ".project".to_string(), ".groupproject".to_string()];
     let ignore_path_ends = vec![".git".to_string(), "src".to_string()];
-    let ignore_current = vec![".noproject".to_string()]; //TODO this is what beats a normal find
+    let ignore_current = vec![".project".to_string(), ".git".to_string()]; //TODO this is what beats a normal find
 
     //TODO use channel for live updates - multithread
     let mut paths: Vec<PathBuf> = vec![];
