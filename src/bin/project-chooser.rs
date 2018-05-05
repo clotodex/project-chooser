@@ -215,7 +215,7 @@ fn main() {
 
     let options = parse_commandline_args();
 
-    debug!("Arguments: {:?}", options);
+    trace!("Arguments: {:?}", options);
 
     // retrieve project paths
     let ok_path = vec![".git".to_string(), ".project".to_string(), ".groupproject".to_string()];
