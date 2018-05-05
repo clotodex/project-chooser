@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 /* dir to search in (default ~/projects)
  *
  * search query

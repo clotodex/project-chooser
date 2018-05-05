@@ -256,12 +256,12 @@ fn main() {
 
     match options.mode {
         OutputMode::ALL => for r in &results {
-            println!("{:?}", r);
+            println!("{}", r.display());
         },
-        OutputMode::FIRST => println!("{:?}", results[0]),
+        OutputMode::FIRST => println!("{}", results[0].display()),
         OutputMode::INTERACTIVE => {
             if results.len() == 1 {
-                println!("{:?}", results[0])
+                println!("{}", results[0].display())
             } else {
                 println!();
                 println!(
@@ -269,7 +269,7 @@ fn main() {
                     results.len() - 1
                 );
                 for (i, r) in results.iter().enumerate() {
-                    println!("[{}] {:?}", i, r);
+                    println!("[{}] {}", i, r.display());
                 }
 
                 let num: usize = loop {
@@ -285,7 +285,7 @@ fn main() {
                     }
                 };
 
-                println!("{:?}", results[num]);
+                println!("{}", results[num].display());
             }
         }
     }

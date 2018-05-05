@@ -41,6 +41,8 @@ ARGS:
 - proper return codes (no selection or error produces error code)
 - cache functionality (display cache and index projects in background, updating the cache)
 - save cache in "most recently" order and have a selection count => should add option to sort alphabetically as well
+- option for a dry-run only updating the cache (could be run via cronjob)
+- metainfo in cachefile (e.g. timestamp of last cache update => can decide based on time difference if another indexing is necessary)
 - multi-threading (is I/O the bottleneck or can I/O be done in multiple threads?)
 - make graphical selection a compile time feature
 - have other graphical options (gtk, qt, windows)
