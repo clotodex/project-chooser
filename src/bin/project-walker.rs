@@ -1,6 +1,6 @@
-extern crate rust_project_chooser;
+extern crate project_chooser;
 
-use rust_project_chooser::walker;
+use project_chooser::walker;
 use std::fs::DirEntry;
 use std::path::Path;
 

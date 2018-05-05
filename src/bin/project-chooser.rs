@@ -1,12 +1,12 @@
 // add tags / group by project type (rust projects have Cargo.toml
-extern crate rust_project_chooser;
+extern crate project_chooser;
 #[macro_use]
 extern crate log;
 extern crate stderrlog;
 #[macro_use]
 extern crate clap;
 
-use rust_project_chooser::{walker, search::SearchKind};
+use project_chooser::{walker, search::SearchKind};
 use std::{fs::DirEntry, path::{Path, PathBuf}};
 use std::process::{Command, Stdio};
 use std::{io, io::prelude::*};
@@ -161,7 +161,7 @@ fn parse_commandline_args() -> ProgramOptions {
 
     stderrlog::new()
         .module(module_path!())
-        .module("rust_project_chooser")
+        .module("project_chooser")
         .quiet(quiet)
         .verbosity(verbose)
         .init()

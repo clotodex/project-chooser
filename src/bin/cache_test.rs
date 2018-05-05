@@ -1,6 +1,6 @@
-extern crate rust_project_chooser;
+extern crate project_chooser;
 
-use rust_project_chooser::cache::Cache;
+use project_chooser::cache::Cache;
 use std::path::{Path,PathBuf};
 
 fn main(){
