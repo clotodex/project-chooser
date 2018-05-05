@@ -56,10 +56,10 @@ TODO
 
 ### Building from source
 
-1) install rust as shown [here](https://www.rust-lang.org/install.html)
-2) clone this repository
-3) run ```cargo build --release```
-4) the binary is saved to <clone-dir>/target/release/project-chooser
+1. install rust as shown [here](https://www.rust-lang.org/install.html)
+2. clone this repository
+3. run ```cargo build --release```
+4. the binary is saved to <clone-dir>/target/release/project-chooser
 
 ## License
 
