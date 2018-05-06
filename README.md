@@ -4,12 +4,18 @@
 
 #### By **clotodex**
 
-## Features
+## Features - How it works
 
 When you have a projects folder where you have many projects or cloned repositories etc it quickly gets difficult to navigate the paths to get to that specific project you started two weeks ago.  
 This tool helps you by identifying all your projects and offering you search functionality.
 
-See [Usage](#usage)
+You can place one of the following files into your directory to mark it as a project:
+- ```.project``` or ```.git``` - this will also exclude the directory from further indexing
+- ```.groupproject - this will tell the tool to also look fro other projects inside this directory
+
+Because of this special indexing this tool is actually faster than GNU find.
+
+For specific features please have a look at the [Usage section](#usage)
 
 <div id="usage" />
 ## Usage
@@ -46,6 +52,8 @@ ARGS:
 - multi-threading (is I/O the bottleneck or can I/O be done in multiple threads?)
 - make graphical selection a compile time feature
 - have other graphical options (gtk, qt, windows)
+- allow .git AND .groupproject
+- place performance results here
 
 ## Installation
 
