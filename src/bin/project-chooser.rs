@@ -120,10 +120,15 @@ fn parse_commandline_args() -> ProgramOptions {
                 .short("q")
                 .help("Silence all output"),
         )
-        .arg(Arg::with_name("path").short("p").help(&format!(
-            "Set root path for locating projects (default: {:?})",
-            options.root
-        )))
+        .arg(
+            Arg::with_name("path")
+                .short("p")
+                .takes_value(true)
+                .help(&format!(
+                    "Set root path for locating projects (default: {:?})",
+                    options.root
+                )),
+        )
         .arg(
             //TODO remove SearchKind and just use a boolean flag
             Arg::with_name("basename")
@@ -218,7 +223,11 @@ fn main() {
     trace!("Arguments: {:?}", options);
 
     // retrieve project paths
-    let ok_path = vec![".git".to_string(), ".project".to_string(), ".groupproject".to_string()];
+    let ok_path = vec![
+        ".git".to_string(),
+        ".project".to_string(),
+        ".groupproject".to_string(),
+    ];
     let ignore_path_ends = vec![".git".to_string(), "src".to_string()];
     let ignore_current = vec![".project".to_string(), ".git".to_string()]; //TODO this is what beats a normal find
 
