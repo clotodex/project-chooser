@@ -11,7 +11,7 @@ This tool helps you by identifying all your projects and offering you search fun
 
 You can place one of the following files into your directory to mark it as a project:
 - ```.project``` or ```.git``` - this will also exclude the directory from further indexing
-- ```.groupproject - this will tell the tool to also look fro other projects inside this directory
+- ```.groupproject``` - this will tell the tool to also look fro other projects inside this directory
 
 Because of this special indexing this tool is actually faster than GNU find.
 
@@ -54,6 +54,7 @@ ARGS:
 - have other graphical options (gtk, qt, windows)
 - allow .git AND .groupproject
 - place performance results here
+- show an example project structure or even have a small gif showing the tool in action
 
 ## Installation
 
