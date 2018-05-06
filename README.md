@@ -62,6 +62,17 @@ ARGS:
 
 - ```query```: A string to search for - if omitted dmenu will be opened where you can search in all your projects interactively 
 
+### Aliases
+
+This tool outputs the path to the selected project.  
+Since I navigate my filesystem via the terminal on linux I can use aliases to call the tool and directly change the directory.  
+I you want to do this too, please have a look at the [aliases file](/aliases.sh)
+
+You can also use the output to call any file-browser you like with the path.
+For windows for example you could write a .bat file calling the tool and starting explorer.exe with the path as an arg.
+
+I can add all integration-scripts to this repository, just create an issue with the script.
+
 ## Future ideas and TODOs
 
 - proper return codes (no selection or error produces error code)
