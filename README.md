@@ -10,10 +10,30 @@ When you have a projects folder where you have many projects or cloned repositor
 This tool helps you by identifying all your projects and offering you search functionality.
 
 You can place one of the following files into your directory to mark it as a project:
-- ```.project``` or ```.git``` - this will also exclude the directory from further indexing
+- ```.project``` or ```.git``` - this will also exclude the directory from deeper indexing
 - ```.groupproject``` - this will tell the tool to also look fro other projects inside this directory
 
-Because of this special indexing this tool is actually faster than GNU find.
+An example directory structure
+    
+    projects
+    ├── cloned_project/
+    │   └── .git/
+    ├── parentProject/
+    │   ├── binary/
+    │   │   └── .git/
+    │   ├── library/
+    │   │   └── .git/
+    │   └── .groupproject
+    ├── projectA/
+    │   └── .project
+    └── projectB/
+        ├── data/
+        └── .project
+
+This wil find the following projects: ```cloned_project```, ```parent_project```, ```binary```, ```library```, ```projectA```, ```projectB```  
+The ```.project``` file in projectB also prevents the tool from searching through ```data/```.
+
+Because of this special indexing this tool is actually faster than GNU find (for this sepecific task).
 
 For specific features please have a look at the [Usage section](#usage)
 
