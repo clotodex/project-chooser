@@ -86,6 +86,9 @@ I can add all integration-scripts to this repository, just create an issue with 
 - allow .git AND .groupproject
 - place performance results here
 - show an example project structure or even have a small gif showing the tool in action
+- have project information in .project (type, language, etc)
+- auto-detect project metadata (e.g. Cargo.toml is rust project)
+- above two lines could be outsourced into a seperate indexer => getting list of all directories from cache file
 
 ## Installation
 
