@@ -217,6 +217,7 @@ fn main() {
     //TODO replace all expects and unwraps with error!
     //TODO use builder macro from usage
     //TODO use exit codes
+    //TODO use cache
 
     let options = parse_commandline_args();
 
@@ -272,25 +273,24 @@ fn main() {
             if results.len() == 1 {
                 println!("{}", results[0].display())
             } else {
-                println!();
-                println!(
+                eprintln!("Multiple results!");
+                eprintln!(
                     "Please type a number between 0 and {} to choose a project",
                     results.len() - 1
                 );
                 for (i, r) in results.iter().enumerate() {
-                    println!("[{}] {}", i, r.display());
+                    eprintln!("[{}] {}", i, r.display());
                 }
 
                 let num: usize = loop {
                     let mut input = String::new();
-                    print!("input number: ");
-                    io::stdout().flush().unwrap();
+                    eprint!("input number (0-{}): ", results.len()-1);
+                    io::stderr().flush().unwrap();
                     io::stdin().read_line(&mut input).unwrap();
                     let input = input.trim();
-                    if let Ok(x) = input.parse::<usize>() {
-                        break x;
-                    } else {
-                        println!("please type in a number or press ctrl-c to quit");
+                    match input.parse::<usize>() {
+                        Ok(x) if x < results.len() => break x,
+                        _ => eprintln!("please type a number inside the range 0 to {}", results.len()-1),
                     }
                 };
 
