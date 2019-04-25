@@ -40,7 +40,7 @@ impl Default for ProgramOptions {
     fn default() -> Self {
         ProgramOptions {
             root: {
-                let mut home = std::env::home_dir().unwrap();
+                let mut home = dirs::home_dir().unwrap();
                 home.push("projects");
                 home
             },
@@ -224,13 +224,13 @@ fn gather_projects(root: &Path) -> Vec<PathBuf> {
         },
         &move |entry: &DirEntry| {
             //return ok_path.contains(&entry.file_name().into_string().unwrap());
-            return ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|x| { /*println!("{:?}",x);*/ "".to_string() } ));
+            return ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /*println!("{:?}",x);*/ "".to_string() } ));
         },
         &move |entry: &DirEntry| {
-            return ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|x| { /* println!("{:?}",x); */ "".to_string() } ));
+            return ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ));
         },
         &move |entry: &DirEntry| {
-            return ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|x| { /* println!("{:?}",x); */ "".to_string() } ));
+            return ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ));
         },
     ).unwrap();
 
@@ -313,7 +313,7 @@ fn main() {
 
         let m = Arc::new(Mutex::new(None));
 
-        let mut m2 = m.clone();
+        let m2 = m.clone();
         let root = options.root.clone();
         let t = thread::spawn(move || {
             let paths = gather_projects(&root);
@@ -325,13 +325,12 @@ fn main() {
             debug!("done")
         });
 
-        let mut cache_file = std::env::home_dir().unwrap();
-        cache_file.push(".cache");
+        let mut cache_file = dirs::cache_dir().unwrap();
         cache_file.push("project-chooser.cache");
         let cache = Cache::load(&cache_file).unwrap();
         *m.lock().unwrap() = Some(cache);
 
-        let mut joined = false;
+        let _joined = false;
         let empty = m.lock().unwrap().as_ref().unwrap().entries.is_empty();
         let join = if empty {
             warn!("cache file seems to be empty - waiting for indexing");

@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::Result;
-use std::fs::OpenOptions;
-use std::cmp::Ordering;
+
+
 
 //line in file: (tab separated)
 //50	/home/...
@@ -25,8 +25,8 @@ impl Cache {
             //let file = File::create(&file)?;
             (File::open(&file)
                 .map(|file| {
-                    let mut reader = BufReader::new(file);
-                    let mut lines_iter = reader.lines().map(|l| l.unwrap());
+                    let reader = BufReader::new(file);
+                    let lines_iter = reader.lines().map(|l| l.unwrap());
                     Ok(lines_iter
                         .map(|line| {
                             //TODO ignore empty lines
