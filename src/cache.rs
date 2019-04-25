@@ -13,14 +13,14 @@ type Entry = (Frequency, PathBuf); //(frequency, path)
 
 //TODO write tests!
 //TODO write trace and debug messages and info
-pub struct Cache<'a> {
+pub struct Cache {
     //TODO maybe dont save filepath so load and save can use seperate ones
-    pub file: &'a Path, //TODO or use box => maybe better
+    pub file: PathBuf, //TODO or use box => maybe better
     pub entries: Vec<Entry>,
 }
 
-impl<'a> Cache<'a> {
-    pub fn load(file: &'a Path) -> Result<Self> {
+impl Cache {
+    pub fn load(file: &Path) -> Result<Self> {
         let entries = {
             //let file = File::create(&file)?;
             (File::open(&file)
@@ -45,12 +45,12 @@ impl<'a> Cache<'a> {
                     Ok(vec![])
                 }) as Result<Vec<Entry>>)?
         };
-        Ok(Cache { file, entries })
+        Ok(Cache { file: file.to_path_buf(), entries })
     }
 
-    pub fn new(file: &'a Path) -> Self {
+    pub fn new(file: &Path) -> Self {
         Cache {
-            file,
+            file: file.to_path_buf(),
             entries: vec![],
         }
     }
@@ -70,7 +70,14 @@ impl<'a> Cache<'a> {
     }
 
     pub fn update(&mut self, list: &[PathBuf]) {
-        error!("updating the cache is not possible yet");
+        let new : Vec<Entry> = self.entries.iter().filter(|&&(_, ref e)| list.contains(e)).map(|&(ref f,ref e)| (*f, e.to_path_buf())).collect();
+        let iter : Vec<Entry> = list.iter().filter(|&e| !new.iter().any(|&(_, ref n)| n == e)).map(|e| (0,e.to_path_buf())).collect();
+        self.entries = new.into_iter().chain(iter).collect();
+        //TODO return when changed
+    }
+
+    //TODO return if anything changed
+    /*pub fn update_broken(&mut self, list: &[PathBuf]) {
         //TODO remove from entries what is not contained in list
         //TODO add to back of entries what did not exist yet
 
@@ -87,6 +94,7 @@ impl<'a> Cache<'a> {
         loop {
             if let Some(elem) = elem_opt {
             if let Some(&ind_e) = ind_e_opt {
+                println!("Comparing '{:?}' - '{:?}'", self.entries[ind_e].1, elem);
                 match self.entries[ind_e].1.cmp(&elem) {
                     // cached value does not exist anymore => mark for removal
                     Ordering::Less => {
@@ -136,6 +144,7 @@ impl<'a> Cache<'a> {
         // thus it is safe to remove elements and always substract it from the following indicies
         let mut sub = 0;
         for rem in removals {
+            //TODO crash in next line - not sorted because of chain?
             println!("actually removing: {}", self.entries[rem - sub].1.display());
             self.entries.remove(rem - sub);
             sub += 1;
@@ -144,7 +153,7 @@ impl<'a> Cache<'a> {
 
         //retainall
         //addall
-    }
+    }*/
 
     fn normalize(&mut self) {
         //TODO get lowest frequency => set to 0

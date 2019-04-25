@@ -6,13 +6,15 @@ extern crate stderrlog;
 #[macro_use]
 extern crate clap;
 
-use project_chooser::{walker, search::SearchKind};
+use project_chooser::{walker, search::SearchKind, cache::Cache};
 use std::{fs::DirEntry, path::{Path, PathBuf}};
 use std::process::{Command, Stdio};
 use std::{io, io::prelude::*};
 use std::error::Error;
 use clap::Arg;
 use std::str::FromStr;
+use std::thread;
+use std::sync::{Mutex, Arc};
 
 arg_enum!{
     #[derive(PartialEq, Debug)]
@@ -46,7 +48,7 @@ impl Default for ProgramOptions {
             mode: OutputMode::INTERACTIVE,
             verbose: false,
             threads: None,
-            use_cache: false,
+            use_cache: true,
             query: None,
         }
     }
@@ -193,36 +195,16 @@ fn parse_commandline_args() -> ProgramOptions {
         options.mode = mode
     };
     options.threads = value_t!(m, "jobs", u16).ok();
-    options.use_cache = m.is_present("cache");
+    options.use_cache = m.is_present("cache") || options.use_cache;
     options.query = m.value_of("query").map(|s| s.to_string());
 
     if let Some(_) = options.threads {
         unimplemented!("multi threading is not available yet");
     }
-    if options.use_cache {
-        unimplemented!("cache is not available yet");
-    }
     return options;
 }
 
-// read input arguments
-// - direct serach
-// - basename / nobasename
-// - outputall or choose best or interactive
-// - verbose mode for discovering what indexing is slow
-// - numthreads or seqential
-// - where to search
-fn main() {
-    //TODO make query pipeable in stdin => path collecting only once => search reuse
-    //TODO replace all expects and unwraps with error!
-    //TODO use builder macro from usage
-    //TODO use exit codes
-    //TODO use cache
-
-    let options = parse_commandline_args();
-
-    trace!("Arguments: {:?}", options);
-
+fn gather_projects(root: &Path) -> Vec<PathBuf> {
     // retrieve project paths
     let ok_path = vec![
         ".git".to_string(),
@@ -236,23 +218,28 @@ fn main() {
     let mut paths: Vec<PathBuf> = vec![];
 
     walker::visit_dirs(
-        &options.root,
+        root,
         &mut |p: &Path| {
             paths.push(p.to_path_buf());
         },
         &move |entry: &DirEntry| {
-            return ok_path.contains(&entry.file_name().into_string().unwrap());
+            //return ok_path.contains(&entry.file_name().into_string().unwrap());
+            return ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|x| { /*println!("{:?}",x);*/ "".to_string() } ));
         },
         &move |entry: &DirEntry| {
-            return ignore_path_ends.contains(&entry.file_name().into_string().unwrap());
+            return ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|x| { /* println!("{:?}",x); */ "".to_string() } ));
         },
         &move |entry: &DirEntry| {
-            return ignore_current.contains(&entry.file_name().into_string().unwrap());
+            return ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|x| { /* println!("{:?}",x); */ "".to_string() } ));
         },
     ).unwrap();
 
+    return paths;
+}
+
+fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
     info!("found {} total projects", paths.len());
-    let results: Vec<PathBuf> = if let Some(query) = options.query {
+    let results: Vec<PathBuf> = if let Some(ref query) = options.query {
         rust_search(paths, options.search_kind, &query)
     } else {
         dmenu_search(paths, options.search_kind)
@@ -298,4 +285,68 @@ fn main() {
             }
         }
     }
+}
+
+// read input arguments
+// - direct serach
+// - basename / nobasename
+// - outputall or choose best or interactive
+// - verbose mode for discovering what indexing is slow
+// - numthreads or seqential
+// - where to search
+fn main() {
+    //TODO make query pipeable in stdin => path collecting only once => search reuse
+    //TODO replace all expects and unwraps with error!
+    //TODO use builder macro from usage
+    //TODO use exit codes
+    //TODO use cache
+
+    let options = parse_commandline_args();
+
+    trace!("Arguments: {:?}", options);
+
+
+    if options.use_cache {
+        debug!("cache");
+        //principally ok to use channels to async send the cache to the thread to just du the work
+        //later
+
+        let m = Arc::new(Mutex::new(None));
+
+        let mut m2 = m.clone();
+        let root = options.root.clone();
+        let t = thread::spawn(move || {
+            let paths = gather_projects(&root);
+            m2.lock().unwrap().as_mut().map(|c: &mut Cache| {
+                c.update(&paths);
+                c.save().unwrap();
+            });
+            thread::sleep_ms(5000);
+            debug!("done")
+        });
+
+        let mut cache_file = std::env::home_dir().unwrap();
+        cache_file.push(".cache");
+        cache_file.push("project-chooser.cache");
+        let cache = Cache::load(&cache_file).unwrap();
+        *m.lock().unwrap() = Some(cache);
+
+        let mut joined = false;
+        let empty = m.lock().unwrap().as_ref().unwrap().entries.is_empty();
+        let join = if empty {
+            warn!("cache file seems to be empty - waiting for indexing");
+            t.join().unwrap();
+            None
+        } else { Some(t) };
+        let results = m.lock().unwrap().as_ref().unwrap().entries.iter().map(|&(_, ref e)| e.clone()).collect();
+        display_results(results, options);
+        drop(std::io::stdout());
+        join.map(|t| t.join().unwrap());
+    } else {
+        debug!("no cache");
+        let paths = gather_projects(&options.root);
+        display_results(paths, options);
+    };
+
+
 }

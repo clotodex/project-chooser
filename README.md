@@ -75,6 +75,7 @@ I can add all integration-scripts to this repository, just create an issue with 
 
 ## Future ideas and TODOs
 
+- validate current execution (can the cache handle multiple programs running at the same time)
 - proper return codes (no selection or error produces error code)
 - cache functionality (display cache and index projects in background, updating the cache)
 - save cache in "most recently" order and have a selection count => should add option to sort alphabetically as well
@@ -90,6 +91,7 @@ I can add all integration-scripts to this repository, just create an issue with 
 - auto-detect project metadata (e.g. Cargo.toml is rust project)
 - above two lines could be outsourced into a seperate indexer => getting list of all directories from cache file
 - make use of this tool for batch processing - e.g. execute a script on every project root of a projecttype (specifically: 'cargo outdated' for every rust project)
+- .inactive file for projects not active anymore (can be optionally excluded)
 
 ## Installation
 
