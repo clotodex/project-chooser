@@ -1,5 +1,3 @@
-
-
 use project_chooser::walker;
 use std::fs::DirEntry;
 use std::path::Path;
@@ -21,13 +19,13 @@ fn main() {
         Path::new("/home/clotodex/projects/"),
         &mut callback,
         &move |entry: &DirEntry| {
-            return ok_path.contains(&entry.file_name().into_string().unwrap());
+            ok_path.contains(&entry.file_name().into_string().unwrap())
         },
         &move |entry: &DirEntry| {
-            return ignore_path_ends.contains(&entry.file_name().into_string().unwrap());
+            ignore_path_ends.contains(&entry.file_name().into_string().unwrap())
         },
         &move |entry: &DirEntry| {
-            return ignore_current.contains(&entry.file_name().into_string().unwrap());
+            ignore_current.contains(&entry.file_name().into_string().unwrap())
         },
     ).unwrap();
 }

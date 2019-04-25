@@ -26,7 +26,7 @@ impl Cache {
             (File::open(&file)
                 .map(|file| {
                     let reader = BufReader::new(file);
-                    let lines_iter = reader.lines().map(|l| l.unwrap());
+                    let lines_iter = reader.lines().map(std::result::Result::unwrap);
                     Ok(lines_iter
                         .map(|line| {
                             //TODO ignore empty lines
@@ -55,7 +55,7 @@ impl Cache {
         }
     }
 
-    pub fn select(&mut self, selection: &PathBuf) -> () {
+    pub fn select(&mut self, selection: &PathBuf) {
         let item = if let Some(index) = self.entries.iter().position(|e| &e.1 == selection) {
             let mut item = self.entries.remove(index);
             item.0 += 1;

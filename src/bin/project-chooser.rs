@@ -92,20 +92,20 @@ fn dmenu_search(paths: Vec<PathBuf>, search_kind: SearchKind) -> Vec<PathBuf> {
     }
 
     s.pop();
-    return match search_kind {
+    match search_kind {
         SearchKind::FULL => vec![PathBuf::from(&s)],
         SearchKind::BASENAME => paths
             .into_iter()
             .filter(|p| p.file_name().unwrap().to_string_lossy() == s)
             .collect(),
-    };
+    }
 }
 
 fn rust_search(paths: Vec<PathBuf>, search_kind: SearchKind, query: &str) -> Vec<PathBuf> {
-    return paths
+    paths
         .into_iter()
         .filter(|p| search_kind.search(p, &query))
-        .collect();
+        .collect()
 }
 
 fn parse_commandline_args() -> ProgramOptions {
@@ -174,7 +174,7 @@ fn parse_commandline_args() -> ProgramOptions {
         .init()
         .unwrap();
 
-    if let Some(p) = m.value_of("path").map(|p| PathBuf::from(p)) {
+    if let Some(p) = m.value_of("path").map(PathBuf::from) {
         options.root = p
     };
     options.search_kind = if m.is_present("basename") {
@@ -196,12 +196,12 @@ fn parse_commandline_args() -> ProgramOptions {
     };
     options.threads = value_t!(m, "jobs", u16).ok();
     options.use_cache = m.is_present("cache") || options.use_cache;
-    options.query = m.value_of("query").map(|s| s.to_string());
+    options.query = m.value_of("query").map(ToString::to_string);
 
-    if let Some(_) = options.threads {
+    if options.threads.is_some() {
         unimplemented!("multi threading is not available yet");
     }
-    return options;
+    options
 }
 
 fn gather_projects(root: &Path) -> Vec<PathBuf> {
@@ -224,17 +224,17 @@ fn gather_projects(root: &Path) -> Vec<PathBuf> {
         },
         &move |entry: &DirEntry| {
             //return ok_path.contains(&entry.file_name().into_string().unwrap());
-            return ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /*println!("{:?}",x);*/ "".to_string() } ));
+            ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /*println!("{:?}",x);*/ "".to_string() } ))
         },
         &move |entry: &DirEntry| {
-            return ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ));
+            ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ))
         },
         &move |entry: &DirEntry| {
-            return ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ));
+            ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ))
         },
     ).unwrap();
 
-    return paths;
+    paths
 }
 
 fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
@@ -245,7 +245,7 @@ fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
         dmenu_search(paths, options.search_kind)
     };
 
-    if results.len() == 0 {
+    if results.is_empty() {
         panic!("no results found!");
     }
 
@@ -321,7 +321,6 @@ fn main() {
                 c.update(&paths);
                 c.save().unwrap();
             });
-            thread::sleep_ms(5000);
             debug!("done")
         });
 
@@ -340,7 +339,7 @@ fn main() {
         let results = m.lock().unwrap().as_ref().unwrap().entries.iter().map(|&(_, ref e)| e.clone()).collect();
         display_results(results, options);
         drop(std::io::stdout());
-        join.map(|t| t.join().unwrap());
+        if let Some(t) = join { t.join().unwrap() }
     } else {
         debug!("no cache");
         let paths = gather_projects(&options.root);
