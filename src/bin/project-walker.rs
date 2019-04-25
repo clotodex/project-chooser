@@ -1,4 +1,4 @@
-extern crate project_chooser;
+
 
 use project_chooser::walker;
 use std::fs::DirEntry;

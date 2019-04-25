@@ -3,7 +3,7 @@ use std::fs::{self, DirEntry};
 use std::path::Path;
 
 //TODO can be optimized to work on filename directly
-pub fn visit_dirs<PMF, PIF, PICF>(dir: &Path, cb: &mut FnMut(&Path), pred_match: &PMF, pred_ignored: &PIF, pred_ignore_current: &PICF) -> io::Result<()>
+pub fn visit_dirs<PMF, PIF, PICF>(dir: &Path, cb: &mut dyn FnMut(&Path), pred_match: &PMF, pred_ignored: &PIF, pred_ignore_current: &PICF) -> io::Result<()>
 where PMF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
       PIF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
       PICF: Fn(&DirEntry) -> bool + Send + Sync + 'static {

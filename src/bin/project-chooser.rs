@@ -1,8 +1,8 @@
 // add tags / group by project type (rust projects have Cargo.toml
-extern crate project_chooser;
+
 #[macro_use]
 extern crate log;
-extern crate stderrlog;
+use stderrlog;
 #[macro_use]
 extern crate clap;
 
