@@ -13,8 +13,6 @@ use std::{io, io::prelude::*};
 use std::error::Error;
 use clap::Arg;
 use std::str::FromStr;
-use std::thread;
-use std::sync::{Mutex, Arc};
 
 arg_enum!{
     #[derive(PartialEq, Debug)]
@@ -305,46 +303,19 @@ fn main() {
 
     trace!("Arguments: {:?}", options);
 
-
     if options.use_cache {
-        debug!("cache");
-        //principally ok to use channels to async send the cache to the thread to just du the work
-        //later
-
-        let m = Arc::new(Mutex::new(None));
-
-        let m2 = m.clone();
-        let root = options.root.clone();
-        let t = thread::spawn(move || {
-            let paths = gather_projects(&root);
-            m2.lock().unwrap().as_mut().map(|c: &mut Cache| {
-                c.update(&paths);
-                c.save().unwrap();
-            });
-            debug!("done")
-        });
-
         let mut cache_file = dirs::cache_dir().unwrap();
         cache_file.push("project-chooser.cache");
         let cache = Cache::load(&cache_file).unwrap();
-        *m.lock().unwrap() = Some(cache);
 
-        let _joined = false;
-        let empty = m.lock().unwrap().as_ref().unwrap().entries.is_empty();
-        let join = if empty {
-            warn!("cache file seems to be empty - waiting for indexing");
-            t.join().unwrap();
-            None
-        } else { Some(t) };
-        let results = m.lock().unwrap().as_ref().unwrap().entries.iter().map(|&(_, ref e)| e.clone()).collect();
+        if cache.entries.is_empty() {
+            warn!("cache file seems to be empty");
+        }
+        let results = cache.entries.iter().map(|&(_, ref e)| e.clone()).collect();
         display_results(results, options);
-        drop(std::io::stdout());
-        if let Some(t) = join { t.join().unwrap() }
     } else {
         debug!("no cache");
         let paths = gather_projects(&options.root);
         display_results(paths, options);
     };
-
-
 }
