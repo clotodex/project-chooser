@@ -10,7 +10,7 @@ sed -i "/^project-chooser-[0-9.]*$/d" "$EBUILD"
 
 # add repo to src_uri
 echo "adding repo to SRC_URI"
-REPO='https://gitlab.com/clotodex/${PV}/-/archive/v${PV}/${PN}-v${PV}.tar.bz2'
+REPO='https://gitlab.com/clotodex/${PN}/-/archive/v${PV}/${PN}-v${PV}.tar.bz2'
 ESCAPED_REPO="$( echo $REPO | sed -e 's/[\/&]/\\&/g' )"
 sed -i "s/SRC_URI=\"\(.*\)/SRC_URI=\"$ESCAPED_REPO \1/g" "$EBUILD"
 
@@ -20,7 +20,7 @@ cat >>"$EBUILD" <<EOL
 src_install() {
     cargo_src_install --path=.
 
-    dobin "\${FILESDIR}"/project-chooser-bash
+    dobin bin/project-chooser-bash
 }
 EOL
 echo "done"
