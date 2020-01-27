@@ -2,7 +2,7 @@
 authors = ["clotodex <clotodex@online.de>"]
 license-file = "LICENSE"
 name = "project-chooser"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2018"
 
 [dependencies]
