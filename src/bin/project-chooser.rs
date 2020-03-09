@@ -13,6 +13,7 @@ use std::{io, io::prelude::*};
 use std::error::Error;
 use clap::Arg;
 use std::str::FromStr;
+use std::process;
 
 arg_enum!{
     #[derive(PartialEq, Debug)]
@@ -235,7 +236,7 @@ fn gather_projects(root: &Path) -> Vec<PathBuf> {
     paths
 }
 
-fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
+fn display_results(paths: Vec<PathBuf>, options: ProgramOptions) -> Result<(),Box<dyn Error>>{
     info!("found {} total projects", paths.len());
     let results: Vec<PathBuf> = if let Some(ref query) = options.query {
         rust_search(paths, options.search_kind, &query)
@@ -244,7 +245,7 @@ fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
     };
 
     if results.is_empty() {
-        panic!("no results found!");
+        return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, "no results found")));
     }
 
     info!("query matched {} projects", results.len());
@@ -283,6 +284,7 @@ fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
             }
         }
     }
+    Ok(())
 }
 
 // read input arguments
@@ -292,7 +294,8 @@ fn display_results(paths: Vec<PathBuf>, options: ProgramOptions){
 // - verbose mode for discovering what indexing is slow
 // - numthreads or seqential
 // - where to search
-fn main() {
+
+fn app() -> Result<(),Box<dyn Error>> {
     //TODO make query pipeable in stdin => path collecting only once => search reuse
     //TODO replace all expects and unwraps with error!
     //TODO use builder macro from usage
@@ -303,7 +306,7 @@ fn main() {
 
     trace!("Arguments: {:?}", options);
 
-    if options.use_cache {
+    let paths = if options.use_cache {
         let mut cache_file = dirs::cache_dir().unwrap();
         cache_file.push("project-chooser.cache");
         let cache = Cache::load(&cache_file).unwrap();
@@ -311,11 +314,20 @@ fn main() {
         if cache.entries.is_empty() {
             warn!("cache file seems to be empty");
         }
-        let results = cache.entries.iter().map(|&(_, ref e)| e.clone()).collect();
-        display_results(results, options);
+        cache.entries.iter().map(|&(_, ref e)| e.clone()).collect()
     } else {
         debug!("no cache");
-        let paths = gather_projects(&options.root);
-        display_results(paths, options);
+        gather_projects(&options.root)
     };
+    display_results(paths, options)
+}
+
+fn main() {
+    process::exit(match app() {
+        Ok(_) => 0,
+        Err(err) => {
+            eprintln!("Error: {:?}", err);
+            1
+        }
+    });
 }

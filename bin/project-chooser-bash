@@ -1,2 +1,2 @@
 #!/bin/bash
-pc-recache & dir="$(project-chooser $*)" && cd "$dir"
+(pc-recache &); dir="$(project-chooser $*)" && cd "$dir"

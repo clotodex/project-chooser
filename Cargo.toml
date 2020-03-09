@@ -2,6 +2,7 @@
 authors = ["clotodex <clotodex@online.de>"]
 license-file = "LICENSE"
 name = "project-chooser"
+description = "project indexer to quickly choose projects"
 version = "0.0.1"
 edition = "2018"
 
@@ -10,3 +11,16 @@ clap = "2.33.0"
 log = "0.4.8"
 stderrlog = "0.4.3"
 dirs = "2.0.2"
+
+[package.metadata.rpm]
+cargo = { buildflags = ["--release"] }
+targets = { "project-chooser" = { path = "/usr/bin/project-chooser" }, "pc-recache" = { path = "/usr/bin/pc-recache" } }
+
+[package.metadata.rpm.files]
+"bin/project-chooser-bash" = { path = "/usr/bin/project-chooser-bash" }
+
+[package.metadata.deb]
+depends = "$auto"
+assets = [
+	["bin/project-chooser-bash", "/usr/bin/", "755"]
+]
