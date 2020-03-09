@@ -2,7 +2,7 @@
 authors = ["clotodex <clotodex@online.de>"]
 license-file = "LICENSE"
 name = "project-chooser"
-description = "project indexer to quickly choose projects"
+description = "project indexer to quickly find and navigate to projects"
 version = "0.0.2"
 edition = "2018"
 

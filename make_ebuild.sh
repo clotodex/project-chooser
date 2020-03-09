@@ -18,7 +18,7 @@ sed -i "s/SRC_URI=\"\(.*\)/SRC_URI=\"$ESCAPED_REPO \1/g" "$EBUILD"
 echo "adding bash alias to bin"
 cat >>"$EBUILD" <<EOL
 src_install() {
-    cargo_src_install --path=.
+    cargo_src_install
 
     dobin bin/project-chooser-bash
 }
