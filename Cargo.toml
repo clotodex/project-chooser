@@ -3,14 +3,8 @@ authors = ["clotodex <clotodex@online.de>"]
 license-file = "LICENSE"
 name = "project-chooser"
 description = "project indexer to quickly choose projects"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2018"
-
-[dependencies]
-clap = "2.33.0"
-log = "0.4.8"
-stderrlog = "0.4.3"
-dirs = "2.0.2"
 
 [package.metadata.rpm]
 cargo = { buildflags = ["--release"] }
@@ -24,3 +18,9 @@ depends = "$auto"
 assets = [
 	["bin/project-chooser-bash", "/usr/bin/", "755"]
 ]
+
+[dependencies]
+clap = "2.33.0"
+log = "0.4.8"
+stderrlog = "0.4.3"
+dirs = "2.0.2"
