@@ -1,3 +1,7 @@
-
+.rpm/
+example_dir/
+*.ebuild
+*.out
+*.cache
 /target/
 **/*.rs.bk
