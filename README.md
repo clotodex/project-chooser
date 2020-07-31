@@ -75,6 +75,8 @@ I can add all integration-scripts to this repository, just create an issue with 
 
 ## Future ideas and TODOs
 
+- automatically activate virtualenv
+
 - validate current execution (can the cache handle multiple programs running at the same time)
 - proper return codes (no selection or error produces error code)
 - cache functionality (display cache and index projects in background, updating the cache)
