@@ -31,7 +31,6 @@ where PMF: Fn(&DirEntry) -> bool + Send + Sync + 'static,
 
         //TODO FIXME this whole loop can run out of memory => better exploration? known exclusions
         //like virtualenvs etc
-        println!("tocheck: {:?}", to_check);
         for entry in to_check {
             if entry.is_dir() {
                 visit_dirs(&entry, cb, pred_match, pred_ignored, pred_ignore_current)?;
