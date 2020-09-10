@@ -75,7 +75,18 @@ I can add all integration-scripts to this repository, just create an issue with 
 
 ## Future ideas and TODOs
 
-- automatically activate virtualenv
+- REIMPLEMENTATION
+	- separate search backend
+	- option to just print out files asynchronously so that it can be piped to fzf
+	- intregrate natively with skim
+	- have support for .project contents, like autosource, etc
+
+- integrate with fzf (bash autocompletion <TAB>)
+
+- have project tags to filter by them (lazyly)
+- option to include external projects (or just add tag support in general
+
+- automatically activate virtualenv (.autosource)
 
 - validate current execution (can the cache handle multiple programs running at the same time)
 - proper return codes (no selection or error produces error code)

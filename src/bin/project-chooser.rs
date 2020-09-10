@@ -2,20 +2,23 @@
 
 #[macro_use]
 extern crate log;
-use stderrlog;
 #[macro_use]
 extern crate clap;
 
-use project_chooser::{walker, search::SearchKind, cache::Cache};
-use std::{fs::DirEntry, path::{Path, PathBuf}};
-use std::process::{Command, Stdio};
-use std::{io, io::prelude::*};
-use std::error::Error;
 use clap::Arg;
-use std::str::FromStr;
+use project_chooser::{cache::Cache, search::SearchKind, walker};
+use skim::prelude::*;
+use std::error::Error;
 use std::process;
+use std::process::{Command, Stdio};
+use std::str::FromStr;
+use std::{
+    fs::DirEntry,
+    path::{Path, PathBuf},
+};
+use std::{io, io::prelude::*};
 
-arg_enum!{
+arg_enum! {
     #[derive(PartialEq, Debug)]
     enum OutputMode {
         ALL,
@@ -24,11 +27,124 @@ arg_enum!{
     }
 }
 
+arg_enum! {
+    #[derive(PartialEq, Debug)]
+    pub enum DisplayOption {
+        SKIM,
+        FZF,
+        DMENU,
+        ECHO,
+    }
+}
+
+impl DisplayOption {
+    fn display_search(&self, paths: Vec<PathBuf>, search_kind: SearchKind) -> Option<Vec<PathBuf>> {
+        match self {
+            DisplayOption::DMENU | DisplayOption::FZF => {
+                let process = match self {
+                    DisplayOption::DMENU => match Command::new("dmenu")
+                        .args(&["-i", "-l", "100", "-p", "open project:"])
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::piped())
+                        .spawn()
+                    {
+                        Err(why) => panic!("couldn't spawn dmenu: {}", why),
+                        Ok(process) => process,
+                    },
+                    DisplayOption::FZF => match Command::new("fzf")
+                        //.args(&["-i", "-l", "100", "-p", "open project:"])
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::piped())
+                        .spawn()
+                    {
+                        Err(why) => panic!("couldn't spawn fzf: {}", why),
+                        Ok(process) => process,
+                    },
+                    _ => unreachable!(),
+                };
+
+                //TODO could also loop over iterator and build string directly
+                //TODO maybe append string with its index with enumerate => super simple result extraction
+                let strings: Vec<String> = paths
+                    .iter()
+                    .map(|p| match search_kind {
+                        SearchKind::BASENAME => {
+                            p.file_name().unwrap().to_string_lossy().to_string()
+                        }
+                        SearchKind::FULL => p.to_string_lossy().to_string(),
+                    })
+                    .collect();
+                let string = strings.join("\n");
+
+                //need to drop instream so outstream is active
+                match process.stdin.unwrap().write_all(string.as_bytes()) {
+                    Err(why) => panic!("couldn't write to dmenu stdin: {}", why),
+                    Ok(_) => debug!("sent paths to dmenu"),
+                }
+
+                // The `stdout` field also has type `Option<ChildStdout>` so must be unwrapped.
+                let mut s = String::new();
+                match process.stdout.unwrap().read_to_string(&mut s) {
+                    Err(why) => panic!("couldn't read dmenu stdout: {}", why),
+                    Ok(_) => debug!("dmenu responded with:\n{}", s),
+                }
+
+                s.pop();
+                Some(match search_kind {
+                    SearchKind::FULL => vec![PathBuf::from(&s)],
+                    SearchKind::BASENAME => paths
+                        .into_iter()
+                        .filter(|p| p.file_name().unwrap().to_string_lossy() == s)
+                        .collect(),
+                })
+            }
+            DisplayOption::SKIM => {
+                let options = SkimOptionsBuilder::default()
+                    .height(Some("100%"))
+                    .multi(true)
+                    .build()
+                    .unwrap();
+                let (tx_item, rx_item): (SkimItemSender, SkimItemReceiver) = unbounded();
+
+                for p in paths.iter().map(|p| match search_kind {
+                    SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().to_string(),
+                    SearchKind::FULL => p.display().to_string(),
+                }) {
+                    let _ = tx_item.send(Arc::new(p.to_string()));
+                }
+                drop(tx_item); // so that skim could know when to stop waiting for more items.
+
+                Some(
+                    Skim::run_with(&options, Some(rx_item))
+                        .map(|out| out.selected_items)
+                        .map(|items| {
+                            items
+                                .into_iter()
+                                .map(|i| PathBuf::from_str(&i.output()).unwrap())
+                                .collect()
+                        })
+                        .unwrap_or_else(|| Vec::new()),
+                )
+            }
+            DisplayOption::ECHO => {
+                for p in paths.iter().map(|p| match search_kind {
+                    SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().to_string(),
+                    SearchKind::FULL => p.display().to_string(),
+                }) {
+                    println!("{}", p);
+                }
+                None
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 struct ProgramOptions {
     root: PathBuf,
     search_kind: SearchKind,
     mode: OutputMode,
+    display: DisplayOption,
     verbose: bool,
     threads: Option<u16>,
     use_cache: bool,
@@ -45,58 +161,12 @@ impl Default for ProgramOptions {
             },
             search_kind: SearchKind::FULL,
             mode: OutputMode::INTERACTIVE,
+            display: DisplayOption::SKIM,
             verbose: false,
             threads: None,
             use_cache: true,
             query: None,
         }
-    }
-}
-
-fn dmenu_search(paths: Vec<PathBuf>, search_kind: SearchKind) -> Vec<PathBuf> {
-    // Spawn the `wc` command
-    // dmenu -i -l 100 -p 'open project:'
-    let process = match Command::new("dmenu")
-        .args(&["-i", "-l", "100", "-p", "open project:"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-    {
-        Err(why) => panic!("couldn't spawn dmenu: {}", why.description()),
-        Ok(process) => process,
-    };
-
-    //TODO could also loop over iterator and build string directly
-    //TODO maybe append string with its index with enumerate => super simple result extraction
-    let strings: Vec<String> = paths
-        .iter()
-        .map(|p| match search_kind {
-            SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().to_string(),
-            SearchKind::FULL => p.to_string_lossy().to_string(),
-        })
-        .collect();
-    let string = strings.join("\n");
-
-    //need to drop instream so outstream is active
-    match process.stdin.unwrap().write_all(string.as_bytes()) {
-        Err(why) => panic!("couldn't write to dmenu stdin: {}", why.description()),
-        Ok(_) => debug!("sent paths to dmenu"),
-    }
-
-    // The `stdout` field also has type `Option<ChildStdout>` so must be unwrapped.
-    let mut s = String::new();
-    match process.stdout.unwrap().read_to_string(&mut s) {
-        Err(why) => panic!("couldn't read dmenu stdout: {}", why.description()),
-        Ok(_) => debug!("dmenu responded with:\n{}", s),
-    }
-
-    s.pop();
-    match search_kind {
-        SearchKind::FULL => vec![PathBuf::from(&s)],
-        SearchKind::BASENAME => paths
-            .into_iter()
-            .filter(|p| p.file_name().unwrap().to_string_lossy() == s)
-            .collect(),
     }
 }
 
@@ -154,6 +224,14 @@ fn parse_commandline_args() -> ProgramOptions {
                 .case_insensitive(true),
         )
         .arg(
+            Arg::with_name("display")
+                .short("d")
+                .help(&format!("Display Tool (default: {:?})", options.display))
+                .takes_value(true)
+                .possible_values(&DisplayOption::variants())
+                .case_insensitive(true),
+        )
+        .arg(
             Arg::with_name("jobs")
                 .short("j")
                 .help("Amount of threads to use (default: None)")
@@ -181,14 +259,20 @@ fn parse_commandline_args() -> ProgramOptions {
     } else {
         SearchKind::FULL
     };
-    //options.mode = value_t!(m, "mode", OutputMode).unwrap_or_else(|e| e.exit());
+    if m.is_present("mode") {
+        options.mode = value_t!(m, "mode", OutputMode).unwrap_or_else(|e| e.exit());
+    }
+    if m.is_present("display") {
+        options.display = value_t!(m, "display", DisplayOption).unwrap_or_else(|e| e.exit());
+    }
     if let Some(mode) = m.value_of("mode").map(|m| {
         OutputMode::from_str(m).unwrap_or_else(|_| {
             clap::Error {
                 message: "invalid value for 'mode'".into(),
                 kind: clap::ErrorKind::InvalidValue,
                 info: None,
-            }.exit()
+            }
+            .exit()
         })
     }) {
         options.mode = mode
@@ -223,64 +307,84 @@ fn gather_projects(root: &Path) -> Vec<PathBuf> {
         },
         &move |entry: &DirEntry| {
             //return ok_path.contains(&entry.file_name().into_string().unwrap());
-            ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /*println!("{:?}",x);*/ "".to_string() } ))
+            ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|_x| {
+                /*println!("{:?}",x);*/
+                "".to_string()
+            }))
         },
         &move |entry: &DirEntry| {
-            ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ))
+            ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|_x| {
+                /* println!("{:?}",x); */
+                "".to_string()
+            }))
         },
         &move |entry: &DirEntry| {
-            ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|_x| { /* println!("{:?}",x); */ "".to_string() } ))
+            ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|_x| {
+                /* println!("{:?}",x); */
+                "".to_string()
+            }))
         },
-    ).unwrap();
+    )
+    .unwrap();
 
     paths
 }
 
-fn display_results(paths: Vec<PathBuf>, options: ProgramOptions) -> Result<(),Box<dyn Error>>{
+fn display_results(paths: Vec<PathBuf>, options: ProgramOptions) -> Result<(), Box<dyn Error>> {
     info!("found {} total projects", paths.len());
-    let results: Vec<PathBuf> = if let Some(ref query) = options.query {
-        rust_search(paths, options.search_kind, &query)
+    let results: Option<Vec<PathBuf>> = if let Some(ref query) = options.query {
+        Some(rust_search(paths, options.search_kind, &query))
     } else {
-        dmenu_search(paths, options.search_kind)
+        options.display.display_search(paths, options.search_kind)
     };
 
-    if results.is_empty() {
-        return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, "no results found")));
-    }
+    if let Some(results) = results {
+        if results.is_empty() {
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::NotFound,
+                "no results found",
+            )));
+        }
 
-    info!("query matched {} projects", results.len());
+        info!("query matched {} projects", results.len());
 
-    match options.mode {
-        OutputMode::ALL => for r in &results {
-            println!("{}", r.display());
-        },
-        OutputMode::FIRST => println!("{}", results[0].display()),
-        OutputMode::INTERACTIVE => {
-            if results.len() == 1 {
-                println!("{}", results[0].display())
-            } else {
-                eprintln!("Multiple results!");
-                eprintln!(
-                    "Please type a number between 0 and {} to choose a project",
-                    results.len() - 1
-                );
-                for (i, r) in results.iter().enumerate() {
-                    eprintln!("[{}] {}", i, r.display());
+        match options.mode {
+            OutputMode::ALL => {
+                for r in &results {
+                    println!("{}", r.display());
                 }
-
-                let num: usize = loop {
-                    let mut input = String::new();
-                    eprint!("input number (0-{}): ", results.len()-1);
-                    io::stderr().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    let input = input.trim();
-                    match input.parse::<usize>() {
-                        Ok(x) if x < results.len() => break x,
-                        _ => eprintln!("please type a number inside the range 0 to {}", results.len()-1),
+            }
+            OutputMode::FIRST => println!("{}", results[0].display()),
+            OutputMode::INTERACTIVE => {
+                if results.len() == 1 {
+                    println!("{}", results[0].display())
+                } else {
+                    eprintln!("Multiple results!");
+                    eprintln!(
+                        "Please type a number between 0 and {} to choose a project",
+                        results.len() - 1
+                    );
+                    for (i, r) in results.iter().enumerate() {
+                        eprintln!("[{}] {}", i, r.display());
                     }
-                };
 
-                println!("{}", results[num].display());
+                    let num: usize = loop {
+                        let mut input = String::new();
+                        eprint!("input number (0-{}): ", results.len() - 1);
+                        io::stderr().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        let input = input.trim();
+                        match input.parse::<usize>() {
+                            Ok(x) if x < results.len() => break x,
+                            _ => eprintln!(
+                                "please type a number inside the range 0 to {}",
+                                results.len() - 1
+                            ),
+                        }
+                    };
+
+                    println!("{}", results[num].display());
+                }
             }
         }
     }
@@ -295,12 +399,11 @@ fn display_results(paths: Vec<PathBuf>, options: ProgramOptions) -> Result<(),Bo
 // - numthreads or seqential
 // - where to search
 
-fn app() -> Result<(),Box<dyn Error>> {
+fn app() -> Result<(), Box<dyn Error>> {
     //TODO make query pipeable in stdin => path collecting only once => search reuse
     //TODO replace all expects and unwraps with error!
     //TODO use builder macro from usage
     //TODO use exit codes
-    //TODO use cache
 
     let options = parse_commandline_args();
 
