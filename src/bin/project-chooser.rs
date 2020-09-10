@@ -6,14 +6,13 @@ extern crate log;
 extern crate clap;
 
 use clap::Arg;
-use project_chooser::{cache::Cache, search::SearchKind, walker};
+use project_chooser::{cache::Cache, search::SearchKind, walker::{self, ProjectGathererInfo}};
 use skim::prelude::*;
 use std::error::Error;
 use std::process;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::{
-    fs::DirEntry,
     path::{Path, PathBuf},
 };
 use std::{io, io::prelude::*};
@@ -288,45 +287,10 @@ fn parse_commandline_args() -> ProgramOptions {
 }
 
 fn gather_projects(root: &Path) -> Vec<PathBuf> {
-    // retrieve project paths
-    let ok_path = vec![
-        ".git".to_string(),
-        ".project".to_string(),
-        ".groupproject".to_string(),
-    ];
-    let ignore_path_ends = vec![".git".to_string(), "src".to_string()];
-    let ignore_current = vec![".project".to_string(), ".git".to_string()]; //TODO this is what beats a normal find
-
-    //TODO use channel for live updates - multithread
     let mut paths: Vec<PathBuf> = vec![];
-
-    walker::visit_dirs(
-        root,
-        &mut |p: &Path| {
-            paths.push(p.to_path_buf());
-        },
-        &move |entry: &DirEntry| {
-            //return ok_path.contains(&entry.file_name().into_string().unwrap());
-            ok_path.contains(&entry.file_name().into_string().unwrap_or_else(|_x| {
-                /*println!("{:?}",x);*/
-                "".to_string()
-            }))
-        },
-        &move |entry: &DirEntry| {
-            ignore_path_ends.contains(&entry.file_name().into_string().unwrap_or_else(|_x| {
-                /* println!("{:?}",x); */
-                "".to_string()
-            }))
-        },
-        &move |entry: &DirEntry| {
-            ignore_current.contains(&entry.file_name().into_string().unwrap_or_else(|_x| {
-                /* println!("{:?}",x); */
-                "".to_string()
-            }))
-        },
-    )
-    .unwrap();
-
+    for p in &walker::visit_dirs(root, ProjectGathererInfo::default()) {
+        paths.push(p.as_ref().unwrap().path().to_path_buf());
+    }
     paths
 }
 
@@ -412,6 +376,7 @@ fn app() -> Result<(), Box<dyn Error>> {
     let paths = if options.use_cache {
         let mut cache_file = dirs::cache_dir().unwrap();
         cache_file.push("project-chooser.cache");
+        //TODO make cache loading async and return mpsc::Receiver
         let cache = Cache::load(&cache_file).unwrap();
 
         if cache.entries.is_empty() {
