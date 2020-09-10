@@ -75,13 +75,7 @@ I can add all integration-scripts to this repository, just create an issue with 
 
 ## Future ideas and TODOs
 
-- REIMPLEMENTATION
-	- separate search backend
-	- option to just print out files asynchronously so that it can be piped to fzf
-	- intregrate natively with skim
-	- have support for .project contents, like autosource, etc
-
-- integrate with fzf (bash autocompletion <TAB>)
+- have support for .project contents, like autosource, etc
 
 - have project tags to filter by them (lazyly)
 - option to include external projects (or just add tag support in general
