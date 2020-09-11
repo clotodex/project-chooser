@@ -75,6 +75,8 @@ I can add all integration-scripts to this repository, just create an issue with 
 
 ## Future ideas and TODOs
 
+- make preview customizable (file regex -> preview command)
+
 - have support for .project contents, like autosource, etc
 
 - have project tags to filter by them (lazyly)

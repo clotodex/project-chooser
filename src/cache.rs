@@ -1,10 +1,8 @@
-use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::io::BufReader;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::io::Result;
-
-
+use std::path::{Path, PathBuf};
 
 //line in file: (tab separated)
 //50	/home/...
@@ -45,7 +43,10 @@ impl Cache {
                     Ok(vec![])
                 }) as Result<Vec<Entry>>)?
         };
-        Ok(Cache { file: file.to_path_buf(), entries })
+        Ok(Cache {
+            file: file.to_path_buf(),
+            entries,
+        })
     }
 
     pub fn new(file: &Path) -> Self {
@@ -70,8 +71,17 @@ impl Cache {
     }
 
     pub fn update(&mut self, list: &[PathBuf]) {
-        let new : Vec<Entry> = self.entries.iter().filter(|&&(_, ref e)| list.contains(e)).map(|&(ref f,ref e)| (*f, e.to_path_buf())).collect();
-        let iter : Vec<Entry> = list.iter().filter(|&e| !new.iter().any(|&(_, ref n)| n == e)).map(|e| (0,e.to_path_buf())).collect();
+        let new: Vec<Entry> = self
+            .entries
+            .iter()
+            .filter(|&&(_, ref e)| list.contains(e))
+            .map(|&(ref f, ref e)| (*f, e.to_path_buf()))
+            .collect();
+        let iter: Vec<Entry> = list
+            .iter()
+            .filter(|&e| !new.iter().any(|&(_, ref n)| n == e))
+            .map(|e| (0, e.to_path_buf()))
+            .collect();
         self.entries = new.into_iter().chain(iter).collect();
         //TODO return when changed
     }

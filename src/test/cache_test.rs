@@ -1,10 +1,11 @@
-
-
 use project_chooser::cache::Cache;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
-fn main(){
-    let mut contents: Vec<PathBuf> = ["path/1", "path/2/", "path/3"].iter().map(PathBuf::from).collect();
+fn main() {
+    let mut contents: Vec<PathBuf> = ["path/1", "path/2/", "path/3"]
+        .iter()
+        .map(PathBuf::from)
+        .collect();
     println!("loading");
     let mut cache = Cache::load(&Path::new("test.cache")).unwrap();
 
@@ -31,7 +32,14 @@ fn main(){
     cache.update(&contents);
     println!("cache: {:?}", cache.entries);
 
-    assert_eq!(cache.entries, vec![(1, PathBuf::from("path/1")), (3, PathBuf::from("path/2/")), (0, PathBuf::from("path/4"))]);
+    assert_eq!(
+        cache.entries,
+        vec![
+            (1, PathBuf::from("path/1")),
+            (3, PathBuf::from("path/2/")),
+            (0, PathBuf::from("path/4"))
+        ]
+    );
 
     println!("selecting");
     cache.select(&PathBuf::from("/path/to/select"));

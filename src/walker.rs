@@ -1,39 +1,40 @@
 use ignore::DirEntry as DE;
-use ignore::WalkBuilder;
-use ignore::WalkState;
+use ignore::Error;
 use ignore::ParallelVisitor;
 use ignore::ParallelVisitorBuilder;
-use ignore::Error;
-use std::sync::mpsc;
+use ignore::WalkBuilder;
+use ignore::WalkState;
 use std::path::Path;
+use std::sync::mpsc;
 
 struct MyWalkFnBuilder {
-    tx: mpsc::Sender<Result<DE,Error>>,
+    tx: mpsc::Sender<Result<DE, Error>>,
     info: ProjectGathererInfo,
-
 }
 
-type FnVisitor<'s> =
-    Box<dyn FnMut(Result<DE, Error>) -> WalkState + Send + 's>;
+type FnVisitor<'s> = Box<dyn FnMut(Result<DE, Error>) -> WalkState + Send + 's>;
 
 impl<'s> MyWalkFnBuilder {
     fn create_visitor(&mut self) -> FnVisitor<'s> {
         let txx = mpsc::Sender::clone(&self.tx);
         let info_clone = self.info.clone();
         return Box::new(move |path: Result<DE, Error>| {
-            if info_clone.no_enter_echo
+            if info_clone
+                .no_enter_echo
                 .iter()
                 .any(|s| path.as_ref().unwrap().path().join(s).exists())
             {
                 txx.send(path).unwrap();
                 WalkState::Skip
-            } else if info_clone.no_enter
+            } else if info_clone
+                .no_enter
                 .iter()
                 .any(|s| path.as_ref().unwrap().path().join(s).exists())
             {
                 WalkState::Skip
             } else {
-                if info_clone.enter_echo
+                if info_clone
+                    .enter_echo
                     .iter()
                     .any(|s| path.as_ref().unwrap().path().join(s).exists())
                 {
@@ -42,13 +43,14 @@ impl<'s> MyWalkFnBuilder {
                 WalkState::Continue
             }
         });
-
     }
 }
 
 impl<'s> ParallelVisitorBuilder<'s> for MyWalkFnBuilder {
     fn build(&mut self) -> Box<dyn ParallelVisitor + 's> {
-        Box::new(FnVisitorImp { visitor: self.create_visitor() })
+        Box::new(FnVisitorImp {
+            visitor: self.create_visitor(),
+        })
     }
 }
 
@@ -71,21 +73,17 @@ pub struct ProjectGathererInfo {
 impl Default for ProjectGathererInfo {
     fn default() -> Self {
         ProjectGathererInfo {
-            no_enter: vec![
-                "src".to_owned()
-            ],
-            no_enter_echo: vec![
-                ".git".to_owned(),
-                ".project".to_owned()
-            ],
-            enter_echo: vec![
-                ".groupproject".to_owned()
-            ],
+            no_enter: vec!["src".to_owned()],
+            no_enter_echo: vec![".git".to_owned(), ".project".to_owned()],
+            enter_echo: vec![".groupproject".to_owned()],
         }
     }
 }
 
-pub fn visit_dirs<P: AsRef<Path>>(root: P, info: ProjectGathererInfo) -> mpsc::Receiver<Result<DE, Error>> {
+pub fn visit_dirs<P: AsRef<Path>>(
+    root: P,
+    info: ProjectGathererInfo,
+) -> mpsc::Receiver<Result<DE, Error>> {
     let (tx, rx) = mpsc::channel();
     WalkBuilder::new(root)
         .hidden(false)
@@ -96,6 +94,6 @@ pub fn visit_dirs<P: AsRef<Path>>(root: P, info: ProjectGathererInfo) -> mpsc::R
         .follow_links(false)
         .filter_entry(|entry: &DE| entry.file_type().unwrap().is_dir())
         .build_parallel()
-        .visit(&mut MyWalkFnBuilder{tx, info});
+        .visit(&mut MyWalkFnBuilder { tx, info });
     rx
 }

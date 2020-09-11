@@ -6,15 +6,17 @@ extern crate log;
 extern crate clap;
 
 use clap::Arg;
-use project_chooser::{cache::Cache, search::SearchKind, walker::{self, ProjectGathererInfo}};
+use project_chooser::{
+    cache::Cache,
+    search::SearchKind,
+    walker::{self, ProjectGathererInfo},
+};
 use skim::prelude::*;
 use std::error::Error;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
-use std::{
-    path::{Path, PathBuf},
-};
 use std::{io, io::prelude::*};
 
 arg_enum! {
@@ -36,8 +38,80 @@ arg_enum! {
     }
 }
 
+struct MyItem {
+    path: PathBuf,
+    search_kind: SearchKind,
+    preview_commands: Arc<PreviewCommands>,
+}
+
+impl SkimItem for MyItem {
+    fn display(&self) -> Cow<AnsiString> {
+        //TODO different color based on project type
+        Cow::Owned(match self.search_kind {
+            SearchKind::BASENAME => self
+                .path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+                .into(),
+            SearchKind::FULL => self.path.display().to_string().into(),
+        })
+    }
+
+    fn text(&self) -> Cow<str> {
+        //Cow::Borrowed(&self.inner)
+        match self.search_kind {
+            SearchKind::BASENAME => self.path.file_name().unwrap().to_string_lossy(),
+            SearchKind::FULL => self.path.to_string_lossy(),
+        }
+    }
+
+    fn preview(&self) -> ItemPreview {
+        for filename in &[".project", ".groupproject"] {
+            let p = self.path.join(filename);
+            if p.exists() && p.metadata().unwrap().len() > 0 {
+                return ItemPreview::Command(format!(
+                    "{} '{}'",
+                    self.preview_commands.projectfile_preview_cmd,
+                    p.display()
+                ));
+            }
+        }
+        for rm in &[
+            "README.md",
+            "README.rst",
+            "readme.md",
+            "readme.rst",
+            "README.MD",
+            "README.RST",
+        ] {
+            let p = self.path.join(rm);
+            if p.exists() && p.metadata().unwrap().len() > 0 {
+                return ItemPreview::Command(format!(
+                    "{} '{}'",
+                    self.preview_commands.readme_preview_cmd,
+                    p.display()
+                ));
+            }
+        }
+        ItemPreview::Global
+
+        //if self.inner.starts_with("color") {
+        //ItemPreview::AnsiText(format!("\x1b[31mhello:\x1b[m\n{}", self.text()))
+        //} else {
+        //ItemPreview::Text(format!("hello:\n{}", self.inner))
+        //}
+    }
+}
+
 impl DisplayOption {
-    fn display_search(&self, paths: Vec<PathBuf>, search_kind: SearchKind) -> Option<Vec<PathBuf>> {
+    fn display_search(
+        &self,
+        paths: Vec<PathBuf>,
+        search_kind: SearchKind,
+        options: &ProgramOptions,
+    ) -> Option<Vec<PathBuf>> {
         match self {
             DisplayOption::DMENU | DisplayOption::FZF => {
                 let process = match self {
@@ -98,28 +172,38 @@ impl DisplayOption {
                 })
             }
             DisplayOption::SKIM => {
-                let options = SkimOptionsBuilder::default()
+                let skim_options = SkimOptionsBuilder::default()
                     .height(Some("100%"))
                     .multi(true)
+                    .preview(Some(&options.preview_cmds.default_preview_cmd))
                     .build()
                     .unwrap();
                 let (tx_item, rx_item): (SkimItemSender, SkimItemReceiver) = unbounded();
 
-                for p in paths.iter().map(|p| match search_kind {
-                    SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().to_string(),
-                    SearchKind::FULL => p.display().to_string(),
-                }) {
-                    let _ = tx_item.send(Arc::new(p.to_string()));
+                let pcmds = Arc::new(options.preview_cmds.clone());
+
+                for p in paths.into_iter() {
+                    let _ = tx_item.send(Arc::new(MyItem {
+                        path: p,
+                        search_kind: search_kind,
+                        preview_commands: pcmds.clone(),
+                    }));
                 }
                 drop(tx_item); // so that skim could know when to stop waiting for more items.
 
                 Some(
-                    Skim::run_with(&options, Some(rx_item))
+                    Skim::run_with(&skim_options, Some(rx_item))
                         .map(|out| out.selected_items)
                         .map(|items| {
                             items
                                 .into_iter()
-                                .map(|i| PathBuf::from_str(&i.output()).unwrap())
+                                .map(|i| {
+                                    (*i).as_any()
+                                        .downcast_ref::<MyItem>()
+                                        .expect("something wrong with downcast")
+                                        .path
+                                        .clone()
+                                })
                                 .collect()
                         })
                         .unwrap_or_else(|| Vec::new()),
@@ -138,6 +222,13 @@ impl DisplayOption {
     }
 }
 
+#[derive(Debug, Clone)]
+struct PreviewCommands {
+    default_preview_cmd: String,
+    readme_preview_cmd: String,
+    projectfile_preview_cmd: String,
+}
+
 #[derive(Debug)]
 struct ProgramOptions {
     root: PathBuf,
@@ -148,6 +239,7 @@ struct ProgramOptions {
     threads: Option<u16>,
     use_cache: bool,
     query: Option<String>,
+    preview_cmds: PreviewCommands,
 }
 
 impl Default for ProgramOptions {
@@ -165,6 +257,12 @@ impl Default for ProgramOptions {
             threads: None,
             use_cache: true,
             query: None,
+            preview_cmds: PreviewCommands {
+                //default_preview_cmd: "ls -laF --group-directories-first --show-control-chars --quoting-style=escape --color=always".to_owned(),
+                default_preview_cmd: "tree -F --dirsfirst -L 2 -C {}".to_owned(),
+                readme_preview_cmd: "bat --color=always".to_owned(),
+                projectfile_preview_cmd: "bat --color=always".to_owned(),
+            },
         }
     }
 }
@@ -299,7 +397,9 @@ fn display_results(paths: Vec<PathBuf>, options: ProgramOptions) -> Result<(), B
     let results: Option<Vec<PathBuf>> = if let Some(ref query) = options.query {
         Some(rust_search(paths, options.search_kind, &query))
     } else {
-        options.display.display_search(paths, options.search_kind)
+        options
+            .display
+            .display_search(paths, options.search_kind, &options)
     };
 
     if let Some(results) = results {

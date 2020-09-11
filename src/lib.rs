@@ -32,6 +32,6 @@ extern crate log;
  * - max depth for descending
  */
 
+pub mod cache;
 pub mod search;
 pub mod walker;
-pub mod cache;

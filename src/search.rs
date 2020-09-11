@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum SearchKind {
     BASENAME,
-    FULL
+    FULL,
 }
 
 //TODO implement for path or as iterator
@@ -13,8 +13,13 @@ impl SearchKind {
         //TODO make lowercase search adjustable - maybe even support regex
         let query = query.to_lowercase();
         match *self {
-            SearchKind::BASENAME => p.file_name().unwrap().to_string_lossy().to_lowercase().contains(&query),
-            SearchKind::FULL => p.to_string_lossy().to_lowercase().contains(&query)
+            SearchKind::BASENAME => p
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_lowercase()
+                .contains(&query),
+            SearchKind::FULL => p.to_string_lossy().to_lowercase().contains(&query),
         }
     }
 }
