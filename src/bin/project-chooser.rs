@@ -18,6 +18,7 @@ use std::process;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::{io, io::prelude::*};
+use colored::*;
 
 arg_enum! {
     #[derive(PartialEq, Debug)]
@@ -38,25 +39,51 @@ arg_enum! {
     }
 }
 
+#[derive(Debug, Clone)]
+struct Colors {
+    default: String,
+    git: String,
+    groupproject: String,
+}
+
+impl Default for Colors {
+    fn default() -> Self {
+        Colors {
+            default: String::default(),
+            git: "green".to_owned(),
+            groupproject: "blue".to_owned(),
+        }
+    }
+}
+
 struct MyItem {
     path: PathBuf,
     search_kind: SearchKind,
     preview_commands: Arc<PreviewCommands>,
+    colors: Colors,
 }
 
 impl SkimItem for MyItem {
     fn display(&self) -> Cow<AnsiString> {
         //TODO different color based on project type
-        Cow::Owned(match self.search_kind {
-            SearchKind::BASENAME => self
-                .path
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .to_string()
-                .into(),
-            SearchKind::FULL => self.path.display().to_string().into(),
-        })
+        //Cow::Owned(match self.search_kind {
+        //    SearchKind::BASENAME => self
+        //        .path
+        //        .file_name()
+        //        .unwrap()
+        //        .to_string_lossy()
+        //        .to_string()
+        //        .into(),
+        //    SearchKind::FULL => self.path.display().to_string().into(),
+        //})
+        let color: &str = if self.path.join(".git").exists() {
+            &self.colors.git
+        } else if self.path.join(".groupproject").exists() {
+            &self.colors.groupproject
+        } else {
+            &self.colors.default
+        };
+        Cow::Owned(AnsiString::parse(&format!("{}", self.text().color(color))))
     }
 
     fn text(&self) -> Cow<str> {
@@ -97,11 +124,7 @@ impl SkimItem for MyItem {
         }
         ItemPreview::Global
 
-        //if self.inner.starts_with("color") {
         //ItemPreview::AnsiText(format!("\x1b[31mhello:\x1b[m\n{}", self.text()))
-        //} else {
-        //ItemPreview::Text(format!("hello:\n{}", self.inner))
-        //}
     }
 }
 
@@ -187,6 +210,7 @@ impl DisplayOption {
                         path: p,
                         search_kind: search_kind,
                         preview_commands: pcmds.clone(),
+                        colors: options.colors.clone(),
                     }));
                 }
                 drop(tx_item); // so that skim could know when to stop waiting for more items.
@@ -240,6 +264,7 @@ struct ProgramOptions {
     use_cache: bool,
     query: Option<String>,
     preview_cmds: PreviewCommands,
+    colors: Colors,
 }
 
 impl Default for ProgramOptions {
@@ -263,6 +288,7 @@ impl Default for ProgramOptions {
                 readme_preview_cmd: "bat --color=always".to_owned(),
                 projectfile_preview_cmd: "bat --color=always".to_owned(),
             },
+            colors: Colors::default(),
         }
     }
 }
