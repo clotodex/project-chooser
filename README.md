@@ -75,6 +75,11 @@ I can add all integration-scripts to this repository, just create an issue with 
 
 ## Future ideas and TODOs
 
+- integrate notion properties to automatically create table and query views
+
+- create symlinks with UUID or hash of project in a top level folder -> so that links to projects work, no matter if they were moved
+
+- fuzzy readme search (combined with) file search
 - async display requests (scrolling might be slow)
 - make preview customizable (file regex -> preview command)
 

@@ -22,21 +22,21 @@ impl<'s> MyWalkFnBuilder {
             if info_clone
                 .no_enter_echo
                 .iter()
-                .any(|s| path.as_ref().unwrap().path().join(s).exists())
+                .any(|s| path.as_ref().map_or(false, |p| p.path().join(s).exists()))
             {
                 txx.send(path).unwrap();
                 WalkState::Skip
             } else if info_clone
                 .no_enter
                 .iter()
-                .any(|s| path.as_ref().unwrap().path().join(s).exists())
+                .any(|s| path.as_ref().map_or(false, |p| p.path().join(s).exists())) 
             {
                 WalkState::Skip
             } else {
                 if info_clone
                     .enter_echo
                     .iter()
-                    .any(|s| path.as_ref().unwrap().path().join(s).exists())
+                    .any(|s| path.as_ref().map_or(false, |p| p.path().join(s).exists())) 
                 {
                     txx.send(path).unwrap();
                 }

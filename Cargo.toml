@@ -3,7 +3,7 @@ authors = ["clotodex <clotodex@online.de>"]
 license-file = "LICENSE"
 name = "project-chooser"
 description = "project indexer to quickly find and navigate to projects"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2018"
 
 [package.metadata.rpm]
@@ -27,4 +27,4 @@ dirs = "2.0.2"
 skim = "0.8.2"
 ignore = "0.4.16"
 colored = "2.0.0"
-syntect = { git = "https://github.com/trishume/syntect", branch = "move-regex-use-to-module", default-features = false, features = ["assets", "parsing", "dump-load", "dump-create", "regex-fancy"]}
+#syntect = { git = "https://github.com/trishume/syntect", branch = "move-regex-use-to-module", default-features = false, features = ["assets", "parsing", "dump-load", "dump-create", "regex-fancy"]}
